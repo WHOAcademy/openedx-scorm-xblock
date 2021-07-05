@@ -373,10 +373,18 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         if success_status:
             self.success_status = success_status
         if success_status or completion_status == "completed":
+            self.publish_completion()
             if self.has_score:
                 self.publish_grade()
 
         return context
+    
+    def publish_completion(self):
+        """
+        Utility method used to mark a vertical block as complete.
+        """
+        completion_percent = 1.0
+        self.emit_completion(completion_percent)
 
     def publish_grade(self):
         self.runtime.publish(
