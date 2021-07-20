@@ -365,14 +365,15 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         if lesson_score is not None:
             self.lesson_score = lesson_score
             context.update({"grade": self.get_grade()})
-        if completion_percent is not None:
-            self.emit_completion(completion_percent)
+        # Code commented out as this call marks the unit as completed even if completion_percent < 1
+        # if completion_percent is not None:
+            # self.emit_completion(completion_percent)
         if completion_status:
             self.lesson_status = completion_status
             context.update({"completion_status": completion_status})
         if success_status:
             self.success_status = success_status
-        if success_status or completion_status == "completed":
+        if success_status == "passed" or completion_status == "completed":
             self.publish_completion()
             if self.has_score:
                 self.publish_grade()
