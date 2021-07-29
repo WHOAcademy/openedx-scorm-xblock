@@ -376,7 +376,7 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         if success_status == "passed" or completion_status == "completed":
             self.publish_completion()
             if self.has_score:
-                self.publish_grade()
+                self.publish_grade(1)
 
         return context
     
@@ -387,11 +387,13 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         completion_percent = 1.0
         self.emit_completion(completion_percent)
 
-    def publish_grade(self):
+    def publish_grade(self, grade=None):
+        if grade is None:
+            grade = self.get_grade()
         self.runtime.publish(
             self,
             "grade",
-            {"value": self.get_grade(), "max_value": self.weight},
+            {"value": grade, "max_value": self.weight},
         )
 
     def get_grade(self):
