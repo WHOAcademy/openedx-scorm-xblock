@@ -75,6 +75,14 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         default="Scorm module",
         scope=Scope.settings,
     )
+    scorm_file = String(
+        display_name=_("SCORM file package"),
+        help=_(
+            'Name of the SCORM Zip file uploaded through the "Files & Uploads" section of the Course'
+        ),
+        default="",
+        scope=Scope.settings,
+    )
     index_page_path = String(
         display_name=_("Path to the index page in scorm file"), scope=Scope.settings
     )
