@@ -20,6 +20,8 @@ from xblock.core import XBlock
 from xblock.completable import CompletableXBlockMixin
 from xblock.fields import Scope, String, Float, Boolean, Dict, DateTime, Integer
 
+from xmodule.contentstore.django import contentstore
+
 
 # Make '_' a no-op so we can scrape strings
 def _(text):
@@ -217,13 +219,22 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         self.weight = parse_float(request.params["weight"], 1)
         self.fullscreen_on_launch = request.params["fullscreen_on_launch"] == "1"
         self.icon_class = "problem" if self.has_score else "video"
+        self.scorm_file = request.params.get("scorm_file")
 
         response = {"result": "success", "errors": []}
-        if not hasattr(request.params["file"], "file"):
+        
+        # if not hasattr(request.params["file"], "file"):
+        #     # File not uploaded
+        #     return self.json_response(response)
+
+        if not self.scorm_file:
             # File not uploaded
             return self.json_response(response)
 
-        package_file = request.params["file"].file
+        # package_file = request.params["file"].file
+
+        package_file = self._search_scorm_package()
+
         self.update_package_meta(package_file)
 
         # Clean storage folder, if it already exists
@@ -237,6 +248,22 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
             response["errors"].append(e.args[0])
 
         return self.json_response(response)
+
+    def _search_scorm_package(self):
+        scorm_content, count = contentstore().get_all_content_for_course(
+            self.runtime.course_id,
+            filter_params={
+                "contentType": "application/zip",
+                "displayname": self.scorm_file,
+            },
+        )
+        if not count:
+            raise Exception(
+                'SCORM package "{}" not found'.format(self.scorm_file)
+            )
+        # Since course content names are unique we are sure that we
+        # can't have multiple results, so we just pop the first.
+        return scorm_content.pop()
 
     def clean_storage(self):
         if self.storage.exists(self.extract_folder_base_path):
