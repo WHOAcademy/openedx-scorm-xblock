@@ -11,7 +11,6 @@ from django.core.files.storage import default_storage
 from django.template import Context, Template
 from django.utils import timezone
 from django.utils.module_loading import import_string
-from setup import package_data
 from webob import Response
 import pkg_resources
 from six import string_types
