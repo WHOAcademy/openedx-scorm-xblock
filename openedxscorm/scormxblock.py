@@ -186,6 +186,7 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         # need to support package file uploads.
         studio_context = {
             "field_display_name": self.fields["display_name"],
+            "scorm_file_field": self.fields["scorm_file"],
             "field_has_score": self.fields["has_score"],
             "field_weight": self.fields["weight"],
             "field_width": self.fields["width"],
