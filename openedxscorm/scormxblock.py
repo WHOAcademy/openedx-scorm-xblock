@@ -235,9 +235,7 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         # package_file = request.params["file"].file
         package_file = self._get_package_file()
         
-        zipped_package_file = zipfile.ZipFile(package_file)
-
-        self.update_package_meta(zipped_package_file)
+        self.update_package_meta(zipfile.ZipFile(package_file))
 
         # Clean storage folder, if it already exists
         self.clean_storage()
@@ -463,7 +461,7 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         return self.weight if self.has_score else None
 
     def update_package_meta(self, package_file):
-        self.package_meta["sha1"] = self.get_sha1(package_file)
+        # self.package_meta["sha1"] = self.get_sha1(package_file)
         self.package_meta["name"] = package_file.name
         self.package_meta["last_updated"] = timezone.now().strftime(
             DateTime.DATETIME_FORMAT
