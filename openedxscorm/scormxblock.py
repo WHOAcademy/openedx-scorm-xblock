@@ -235,7 +235,7 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         # package_file = request.params["file"].file
         package_file = self._get_package_file()
         
-        self.update_package_meta(package_file)
+        # self.update_package_meta(package_file)
 
         # Clean storage folder, if it already exists
         self.clean_storage()
