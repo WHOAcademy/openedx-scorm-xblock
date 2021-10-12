@@ -233,7 +233,10 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
 
         # package_file = request.params["file"].file
 
-        package_file = self._search_scorm_package()
+        scorm_package = self._search_scorm_package()
+        # We are actually loading the whole zipfile in memory.
+        # This step should probably be handled more carefully.
+        package_file = contentstore().find(scorm_package["asset_key"]).data
 
         self.update_package_meta(package_file)
 
