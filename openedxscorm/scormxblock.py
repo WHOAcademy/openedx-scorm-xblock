@@ -1,3 +1,4 @@
+import io
 import json
 import hashlib
 import os
@@ -271,7 +272,9 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         scorm_package = self._search_scorm_package()
         # We are actually loading the whole zipfile in memory.
         # This step should probably be handled more carefully.
-        return contentstore().find(scorm_package["asset_key"]).data
+        scorm_zipfile_data = contentstore().find(scorm_package["asset_key"]).data
+
+        return io.BytesIO(scorm_zipfile_data)
 
     def clean_storage(self):
         if self.storage.exists(self.extract_folder_base_path):
