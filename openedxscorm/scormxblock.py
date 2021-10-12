@@ -11,6 +11,7 @@ from django.core.files.storage import default_storage
 from django.template import Context, Template
 from django.utils import timezone
 from django.utils.module_loading import import_string
+from setup import package_data
 from webob import Response
 import pkg_resources
 from six import string_types
@@ -232,11 +233,10 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
             return self.json_response(response)
 
         # package_file = request.params["file"].file
+        package_file = self._get_package_file()
 
-        scorm_package = self._search_scorm_package()
-        # We are actually loading the whole zipfile in memory.
-        # This step should probably be handled more carefully.
-        package_file = contentstore().find(scorm_package["asset_key"]).data
+        print(package_file)
+        print(type(package_file))
 
         self.update_package_meta(package_file)
 
@@ -267,6 +267,12 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         # Since course content names are unique we are sure that we
         # can't have multiple results, so we just pop the first.
         return scorm_content.pop()
+
+    def _get_package_file(self):
+        scorm_package = self._search_scorm_package()
+        # We are actually loading the whole zipfile in memory.
+        # This step should probably be handled more carefully.
+        return contentstore().find(scorm_package["asset_key"]).data
 
     def clean_storage(self):
         if self.storage.exists(self.extract_folder_base_path):
