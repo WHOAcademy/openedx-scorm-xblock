@@ -5,7 +5,7 @@ function ScormStudioXBlock(runtime, element) {
     $(element).find('.save-button').bind('click', function() {
         var form_data = new FormData();
         // var file_data = $(element).find('#scorm_file').prop('files')[0];
-        var scorm_file = $(element).find("#scorm_file_field").val();
+        var scorm_file = $(element).find('input[name=scorm_file]').val();
         var display_name = $(element).find('input[name=display_name]').val();
         var has_score = $(element).find('select[name=has_score]').val();
         var weight = $(element).find('input[name=weight]').val();
