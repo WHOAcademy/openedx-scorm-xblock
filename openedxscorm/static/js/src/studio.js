@@ -4,7 +4,8 @@ function ScormStudioXBlock(runtime, element) {
 
     $(element).find('.save-button').bind('click', function() {
         var form_data = new FormData();
-        var file_data = $(element).find('#scorm_file').prop('files')[0];
+        // var file_data = $(element).find('#scorm_file').prop('files')[0];
+        var scorm_file = $(element).find("#scorm_file_field").val();
         var display_name = $(element).find('input[name=display_name]').val();
         var has_score = $(element).find('select[name=has_score]').val();
         var weight = $(element).find('input[name=weight]').val();
@@ -12,7 +13,8 @@ function ScormStudioXBlock(runtime, element) {
         var height = $(element).find('input[name=height]').val();
         var fullscreen_on_launch = $(element).find('select[name=fullscreen_on_launch]').val();
 
-        form_data.append('file', file_data);
+        // form_data.append('file', file_data);
+        form_data.append("scorm_file", scorm_file);
         form_data.append('display_name', display_name);
         form_data.append('has_score', has_score);
         form_data.append('weight', weight);

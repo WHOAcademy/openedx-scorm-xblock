@@ -11,7 +11,7 @@
             <span class="tip setting-help">{% trans field_display_name.help %}</span>
         </li>
 
-        <li class="field comp-setting-entry is-set">
+        <!-- <li class="field comp-setting-entry is-set">
             <div class="wrapper-comp-setting">
                 <label class="label setting-label" for="scorm_file">{% trans "Upload .zip package" %}</label>
                 <input class="input setting-input" name="scorm_file" id="scorm_file" type="file" accept="application/zip" />
@@ -19,7 +19,15 @@
             {% if scorm_xblock.package_meta.name %}
             <span class="tip setting-help setting-input-file"><span>{% trans "Currently:" %}</span> {{ scorm_xblock.package_meta.name }}</span>
             {% endif %}
-        </li>
+        </li> -->
+
+        <li class="field comp-setting-entry is-set">
+            <div class="wrapper-comp-setting">
+              <label class="label setting-label" for="scorm_file">{% trans scorm_file_field.display_name %}</label>
+              <input class="input setting-input" name="scorm_file" id="scorm_file_field" value="{{ scorm_xblock.scorm_file }}" type="text" />
+            </div>
+            <span class="tip setting-help">{% trans scorm_file_field.help %}</span>
+          </li>
 
         <li class="field comp-setting-entry is-set">
             <div class="wrapper-comp-setting">
