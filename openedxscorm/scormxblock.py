@@ -243,6 +243,8 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
 
         return self.json_response(response)
 
+    # This function has been borrowed from Abstract-Tech
+    # https://github.com/Abstract-Tech/abstract-scorm-xblock/blob/11c2f0ec61dbc4d4e1af37b5a203c2f8be7eb944/abstract_scorm_xblock/abstract_scorm_xblock/scormxblock.py#L319
     def _search_scorm_package(self):
         """
         Search the mongo contentstore for the filename and return the file metadata
@@ -269,6 +271,9 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         scorm_package = self._search_scorm_package()
         # We are actually loading the whole zipfile in memory.
         # This step should probably be handled more carefully.
+
+        # Code snippet borrowed from
+        # https://github.com/Abstract-Tech/abstract-scorm-xblock/blob/11c2f0ec61dbc4d4e1af37b5a203c2f8be7eb944/abstract_scorm_xblock/abstract_scorm_xblock/scormxblock.py#L343
         scorm_zipfile_data = contentstore().find(scorm_package["asset_key"]).data
 
         return ContentFile(scorm_zipfile_data)
