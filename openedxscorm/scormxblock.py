@@ -242,7 +242,7 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
 
         # Extract zip file
         try:
-            self.extract_package(io.BytesIO(package_file))
+            self.extract_package(package_file)
             self.update_package_fields()
         except ScormError as e:
             response["errors"].append(e.args[0])
@@ -271,7 +271,7 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         # This step should probably be handled more carefully.
         scorm_zipfile_data = contentstore().find(scorm_package["asset_key"]).data
 
-        return scorm_zipfile_data
+        return ContentFile(scorm_zipfile_data)
 
     def clean_storage(self):
         if self.storage.exists(self.extract_folder_base_path):
@@ -461,14 +461,13 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         return self.weight if self.has_score else None
 
     def update_package_meta(self, package_file):
-        package_file_as_bytes = io.BytesIO(package_file)
-        self.package_meta["sha1"] = self.get_sha1(package_file_as_bytes)
-        self.package_meta["name"] = package_file
+        self.package_meta["sha1"] = self.get_sha1(package_file)
+        self.package_meta["name"] = package_file.name
         self.package_meta["last_updated"] = timezone.now().strftime(
             DateTime.DATETIME_FORMAT
         )
-        self.package_meta["size"] = package_file_as_bytes.seek(0, 2)
-        package_file_as_bytes.seek(0)
+        self.package_meta["size"] = package_file.seek(0, 2)
+        package_file.seek(0)
 
     def update_package_fields(self):
         """
