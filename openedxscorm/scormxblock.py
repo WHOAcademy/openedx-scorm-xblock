@@ -1,4 +1,3 @@
-import io
 import json
 import hashlib
 import os
@@ -224,15 +223,10 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
 
         response = {"result": "success", "errors": []}
         
-        # if not hasattr(request.params["file"], "file"):
-        #     # File not uploaded
-        #     return self.json_response(response)
-
         if not self.scorm_file:
             # File not uploaded
             return self.json_response(response)
 
-        # package_file = request.params["file"].file
         package_file = self._get_package_file()
         
         self.update_package_meta(package_file)
@@ -250,6 +244,9 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         return self.json_response(response)
 
     def _search_scorm_package(self):
+        """
+        Search the mongo contentstore for the filename and return the file metadata
+        """
         scorm_content, count = contentstore().get_all_content_for_course(
             self.runtime.course_id,
             filter_params={
@@ -266,6 +263,9 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         return scorm_content.pop()
 
     def _get_package_file(self):
+        """
+        Convert the file content (in bytes) to a ContentFile and return it 
+        """
         scorm_package = self._search_scorm_package()
         # We are actually loading the whole zipfile in memory.
         # This step should probably be handled more carefully.
