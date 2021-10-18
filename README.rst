@@ -95,3 +95,9 @@ License
 -------
 
 This work is licensed under the terms of the `GNU Affero General Public License (AGPL) <https://github.com/overhangio/openedx-scorm-xblock/blob/master/LICENSE.txt>`_.
+
+Custom Updates
+--------------
+* `Support edX import export`_
+
+.. _`Support edX import export`: ./docs/support-import-export.md

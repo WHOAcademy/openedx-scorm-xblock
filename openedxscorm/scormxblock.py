@@ -20,6 +20,8 @@ from xblock.core import XBlock
 from xblock.completable import CompletableXBlockMixin
 from xblock.fields import Scope, String, Float, Boolean, Dict, DateTime, Integer
 
+from xmodule.contentstore.django import contentstore
+
 
 # Make '_' a no-op so we can scrape strings
 def _(text):
@@ -73,6 +75,14 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         display_name=_("Display Name"),
         help=_("Display name for this module"),
         default="Scorm module",
+        scope=Scope.settings,
+    )
+    scorm_file = String(
+        display_name=_("SCORM file package"),
+        help=_(
+            'Name of the SCORM Zip file uploaded through the "Files & Uploads" section of the Course'
+        ),
+        default="",
         scope=Scope.settings,
     )
     index_page_path = String(
@@ -152,6 +162,12 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         return self.student_view(context=context)
 
     def student_view(self, context=None):
+        try:
+            package_file = self._get_package_file()
+            self.extract_package(package_file)
+        except Exception as e:
+            logger.warning(e)
+
         student_context = {
             "index_page_url": self.index_page_url,
             "completion_status": self.lesson_status,
@@ -176,8 +192,15 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
     def studio_view(self, context=None):
         # Note that we cannot use xblockutils's StudioEditableXBlockMixin because we
         # need to support package file uploads.
+        try:
+            package_file = self._get_package_file()
+            self.extract_package(package_file)
+        except Exception as e:
+            logger.warning(e)
+
         studio_context = {
             "field_display_name": self.fields["display_name"],
+            "field_scorm_file": self.fields["scorm_file"],
             "field_has_score": self.fields["has_score"],
             "field_weight": self.fields["weight"],
             "field_width": self.fields["width"],
@@ -208,13 +231,16 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         self.weight = parse_float(request.params["weight"], 1)
         self.fullscreen_on_launch = request.params["fullscreen_on_launch"] == "1"
         self.icon_class = "problem" if self.has_score else "video"
+        self.scorm_file = request.params.get("scorm_file")
 
         response = {"result": "success", "errors": []}
-        if not hasattr(request.params["file"], "file"):
+        
+        if not self.scorm_file:
             # File not uploaded
             return self.json_response(response)
 
-        package_file = request.params["file"].file
+        package_file = self._get_package_file()
+        
         self.update_package_meta(package_file)
 
         # Clean storage folder, if it already exists
@@ -228,6 +254,41 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
             response["errors"].append(e.args[0])
 
         return self.json_response(response)
+
+    # This function has been borrowed from Abstract-Tech
+    # https://github.com/Abstract-Tech/abstract-scorm-xblock/blob/11c2f0ec61dbc4d4e1af37b5a203c2f8be7eb944/abstract_scorm_xblock/abstract_scorm_xblock/scormxblock.py#L319
+    def _search_scorm_package(self):
+        """
+        Search the mongo contentstore for the filename and return the file metadata
+        """
+        scorm_content, count = contentstore().get_all_content_for_course(
+            self.runtime.course_id,
+            filter_params={
+                "contentType": "application/zip",
+                "displayname": self.scorm_file,
+            },
+        )
+        if not count:
+            raise Exception(
+                'SCORM package "{}" not found'.format(self.scorm_file)
+            )
+        # Since course content names are unique we are sure that we
+        # can't have multiple results, so we just pop the first.
+        return scorm_content.pop()
+
+    def _get_package_file(self):
+        """
+        Convert the file content (in bytes) to a ContentFile and return it 
+        """
+        scorm_package = self._search_scorm_package()
+        # We are actually loading the whole zipfile in memory.
+        # This step should probably be handled more carefully.
+
+        # Code snippet borrowed from
+        # https://github.com/Abstract-Tech/abstract-scorm-xblock/blob/11c2f0ec61dbc4d4e1af37b5a203c2f8be7eb944/abstract_scorm_xblock/abstract_scorm_xblock/scormxblock.py#L343
+        scorm_zipfile_data = contentstore().find(scorm_package["asset_key"]).data
+
+        return ContentFile(scorm_zipfile_data)
 
     def clean_storage(self):
         if self.storage.exists(self.extract_folder_base_path):
@@ -518,6 +579,12 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
 
         Note: we are not sure what this view is for and it might be removed in the future.
         """
+        try:
+            package_file = self._get_package_file()
+            self.extract_package(package_file)
+        except Exception as e:
+            logger.warning(e)
+
         if self.index_page_url:
             return {
                 "last_modified": self.package_meta.get("last_updated", ""),
