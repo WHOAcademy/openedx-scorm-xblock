@@ -162,6 +162,12 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         return self.student_view(context=context)
 
     def student_view(self, context=None):
+        try:
+            package_file = self._get_package_file()
+            self.extract_package(package_file)
+        except Exception as e:
+            logger.warning(e)
+
         student_context = {
             "index_page_url": self.index_page_url,
             "completion_status": self.lesson_status,
@@ -186,6 +192,12 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
     def studio_view(self, context=None):
         # Note that we cannot use xblockutils's StudioEditableXBlockMixin because we
         # need to support package file uploads.
+        try:
+            package_file = self._get_package_file()
+            self.extract_package(package_file)
+        except Exception as e:
+            logger.warning(e)
+
         studio_context = {
             "field_display_name": self.fields["display_name"],
             "field_scorm_file": self.fields["scorm_file"],
@@ -567,6 +579,12 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
 
         Note: we are not sure what this view is for and it might be removed in the future.
         """
+        try:
+            package_file = self._get_package_file()
+            self.extract_package(package_file)
+        except Exception as e:
+            logger.warning(e)
+
         if self.index_page_url:
             return {
                 "last_modified": self.package_meta.get("last_updated", ""),
