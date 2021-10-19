@@ -41,7 +41,7 @@ setup(
     packages=["openedxscorm"],
     python_requires=">=3.8",
     install_requires=["xblock", "web-fragments"],
-    entry_points={"xblock.v1": ["scorm = openedxscorm:ScormXBlock"]},
+    entry_points={"xblock.v1": ["scorm_v2 = openedxscorm:ScormXBlock"]},
     package_data=package_data("openedxscorm", ["static", "public", "locale"]),
     license="AGPLv3",
     classifiers=["License :: OSI Approved :: GNU Affero General Public License v3"],
