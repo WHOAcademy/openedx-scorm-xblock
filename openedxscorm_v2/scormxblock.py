@@ -74,7 +74,7 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
     display_name = String(
         display_name=_("Display Name"),
         help=_("Display name for this module"),
-        default="Scorm module",
+        default="Scorm module v2",
         scope=Scope.settings,
     )
     scorm_file = String(
