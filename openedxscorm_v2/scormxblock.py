@@ -80,7 +80,7 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
     scorm_file = String(
         display_name=_("SCORM file package"),
         help=_(
-            'Name of the SCORM Zip file uploaded through the "Files & Uploads" section of the Course.  Only "application/zip" files allowed.'
+            'Name of the SCORM Zip file uploaded through the "Files & Uploads" section of the Course.  Only ".zip" files allowed.'
         ),
         default="",
         scope=Scope.settings,
@@ -242,11 +242,8 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         try:
             package_file = self._get_package_file()
         except Exception:
-            return Response(
-                json_body={"field": "scorm_file", "message": "SCORM package not found. Only application/zip files allowed."},
-                content_type="application/json",
-                status=404,
-            )
+            response["errors"].append("SCORM package not found. Make sure the name is correct and the file type is '.zip' ")
+            return self.json_response(response)
 
         self.update_package_meta(package_file)
 
@@ -271,7 +268,9 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         scorm_content, count = contentstore().get_all_content_for_course(
             self.runtime.course_id,
             filter_params={
-                "contentType": "application/zip",
+                "contentType": {
+                    "$in": ["application/zip", "application/x-zip-compressed"]
+                },
                 "displayname": self.scorm_file,
             },
         )
