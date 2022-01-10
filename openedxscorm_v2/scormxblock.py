@@ -279,7 +279,9 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         If the SCORM package is not already extracted, then
         get and extract the SCORM package
         """
-        if not self.storage.exists(self.extract_folder_path):
+        # Check if the `package_meta` has `sha1` key to make sure
+        # if the package name is not empty
+        if "sha1" in self.package_meta and not self.storage.exists(self.extract_folder_path):
             logger.info(
                 'SCORM package is not extracted in "%s". Extracting it now.', self.extract_folder_path
             )
