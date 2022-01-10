@@ -162,11 +162,7 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         return self.student_view(context=context)
 
     def student_view(self, context=None):
-        # try:
-        #     package_file = self._get_package_file()
-        #     self.extract_package(package_file)
-        # except Exception as e:
-        #     logger.warning(e)
+        self._get_package_file_and_extract()
 
         student_context = {
             "index_page_url": self.index_page_url,
@@ -192,11 +188,7 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
     def studio_view(self, context=None):
         # Note that we cannot use xblockutils's StudioEditableXBlockMixin because we
         # need to support package file uploads.
-        # try:
-        #     package_file = self._get_package_file()
-        #     self.extract_package(package_file)
-        # except Exception as e:
-        #     logger.warning(e)
+        self._get_package_file_and_extract()
 
         studio_context = {
             "field_display_name": self.fields["display_name"],
@@ -282,6 +274,21 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         # can't have multiple results, so we just pop the first.
         return scorm_content.pop()
 
+    def _get_package_file_and_extract(self):
+        """
+        If the SCORM package is not already extracted, then
+        get and extract the SCORM package
+        """
+        if not self.storage.exists(self.extract_folder_path):
+            logger.info(
+                'SCORM package is not extracted in "%s". Extracting it now.', self.extract_folder_path
+            )
+            try:
+                package_file = self._get_package_file()
+                self.extract_package(package_file)
+            except Exception as e:
+                logger.warning(e)
+    
     def _get_package_file(self):
         """
         Convert the file content (in bytes) to a ContentFile and return it 
@@ -316,7 +323,6 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
             self.storage.delete(os.path.join(root, f))
 
     def extract_package(self, package_file):
-        logger.info('extract_package method called')
         with zipfile.ZipFile(package_file, "r") as scorm_zipfile:
             zipinfos = scorm_zipfile.infolist()
             root_path = None
@@ -586,11 +592,7 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
 
         Note: we are not sure what this view is for and it might be removed in the future.
         """
-        try:
-            package_file = self._get_package_file()
-            self.extract_package(package_file)
-        except Exception as e:
-            logger.warning(e)
+        self._get_package_file_and_extract()
 
         if self.index_page_url:
             return {
