@@ -316,6 +316,7 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
             self.storage.delete(os.path.join(root, f))
 
     def extract_package(self, package_file):
+        logger.info('extract_package method called')
         with zipfile.ZipFile(package_file, "r") as scorm_zipfile:
             zipinfos = scorm_zipfile.infolist()
             root_path = None
