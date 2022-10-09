@@ -167,12 +167,48 @@ function ScormXBlock(runtime, element, settings) {
         });
     };
 
+    // Added to fix MCM Score issue
+    // TODO::Implement rest of the LMS API
+    // http://rustici-docs.s3.amazonaws.com/driver/Function-List.html#scoring
+    var SetScore = function(intScore, intMaxScore, intMinScore) {
+        // SCORM 1.2 - cmi.core.score.raw
+        // SCORM 2004 - cmi.score.raw
+        if (settings.scorm_version == 'SCORM_12') {
+            SetValue("cmi.core.score.raw", intScore);
+        } else {
+            SetValue("cmi.score.raw", intScore);
+        }
+    }
+    var GetScore = function() {
+        // SCORM 1.2 - cmi.core.score.raw
+        // SCORM 2004 - cmi.score.raw
+        if (settings.scorm_version == 'SCORM_12') {
+            return GetValue("cmi.core.score.raw");
+        } else {
+            return GetValue("cmi.score.raw");
+        }
+    }
+    var CommitData = function() {
+        return true
+    }
+
     $(function($) {
+        // https://scorm.com/scorm-explained/technical-scorm/run-time/
         if (settings.scorm_version == 'SCORM_12') {
             API = new SCORM_12_API();
         } else {
             API_1484_11 = new SCORM_2004_API();
         }
+        
+        // Added to fix MCM Score issue
+        // TODO::Implement rest of the LMS API
+        // http://rustici-docs.s3.amazonaws.com/driver/Function-List.html#scoring
+        window.lmsAPI = {
+            SetScore: SetScore,
+            GetScore: GetScore,
+            CommitData: CommitData
+        }
+
         $(element).find("button.full-screen-on").on("click", function() {
             enterFullscreen();
         });
