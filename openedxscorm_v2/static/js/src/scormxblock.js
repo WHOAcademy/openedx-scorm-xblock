@@ -189,7 +189,7 @@ function ScormXBlock(runtime, element, settings) {
         }
     }
     var CommitData = function() {
-        return true
+        return true;
     }
 
     $(function($) {
