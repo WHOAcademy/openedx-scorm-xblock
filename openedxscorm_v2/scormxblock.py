@@ -472,6 +472,32 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
 
     def get_grade(self):
         lesson_score = 0 if self.is_failed else self.lesson_score
+
+        """
+        We expect the scorm events to be published in the
+        following order
+
+        ```
+        score
+        completion_status
+        ```
+
+        but some SCORM packages publish the completion_status
+        first followed by score
+        
+        ```
+        completion_status
+        score
+        ```
+
+        Since the grading is needed for Open edX to mark the
+        course as complete, we hard coded the score to 1
+        this score is only used by Open edX and it won't affect
+        the digital credentials score
+        """
+        if lesson_score == 0:
+            lesson_score = 1
+
         return lesson_score * self.weight
 
     @property
