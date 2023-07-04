@@ -17,12 +17,12 @@
     position: fixed;
     border: none;
     overflow: hidden;
-    top: 55px;
+    top: 0;
     right: 0;
     bottom: 0;
     left: 0;
     width: 100%;
-    height: calc(100% - 65px);
+    height: 100%;
     z-index: 10000;
 }
 
@@ -38,24 +38,4 @@
     height: 100%;
     z-index: 10000;
     background-color: #ffffff;
-}
-
-.openedxscorm_block .scorm_button {
-    padding-bottom: 20px;
-}
-
-.openedxscorm_block .full-screen-scorm .scorm_button {
-    padding: 20px;
-}
-
-.openedxscorm_block .full-screen-off {
-    display: none;
-}
-
-.openedxscorm_block .full-screen-scorm .full-screen-off {
-    display: block;
-}
-
-.openedxscorm_block .full-screen-scorm .full-screen-on {
-    display: none;
 }
