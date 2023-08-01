@@ -62,6 +62,11 @@ function ScormXBlock(runtime, element, settings) {
     $(element).find(".js-scorm-block").addClass("full-screen-scorm");
     triggerResize();
   }
+  function exitFullscreen() {
+    $(element).find(".js-scorm-block").removeClass("full-screen-scorm");
+    fullscreenOnNextEvent = true;
+    triggerResize();
+  }
   function triggerResize() {
     // This is required to trigger the actual content resize in some packages
     window.dispatchEvent(new Event("resize"));
@@ -204,5 +209,16 @@ function ScormXBlock(runtime, element, settings) {
       CommitData: CommitData,
     };
     enterFullscreen();
+    // added click event listener for fullscreen buttons in studio
+    $(element)
+      .find("button.full-screen-on")
+      .on("click", function () {
+        enterFullscreen();
+      });
+    $(element)
+      .find("button.full-screen-off")
+      .on("click", function () {
+        exitFullscreen();
+      });
   });
 }

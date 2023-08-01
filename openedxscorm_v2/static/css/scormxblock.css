@@ -39,3 +39,29 @@
     z-index: 10000;
     background-color: #ffffff;
 }
+
+/* adjusted styles for studio view */
+.openedxscorm_block.openedxscorm-studio .full-screen-scorm  .scorm_object {
+    top: 55px;
+    height: calc(100% - 65px);
+}
+
+.openedxscorm_block .scorm_button {
+    padding-bottom: 20px;
+}
+
+.openedxscorm_block .full-screen-scorm .scorm_button {
+    padding: 20px;
+}
+
+.openedxscorm_block .full-screen-off {
+    display: none;
+}
+
+.openedxscorm_block .full-screen-scorm .full-screen-off {
+    display: block;
+}
+
+.openedxscorm_block .full-screen-scorm .full-screen-on {
+    display: none;
+}
