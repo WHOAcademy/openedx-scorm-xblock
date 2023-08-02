@@ -159,7 +159,7 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
             context[
                 "message"
             ] = "Click 'Edit' to modify this module and upload a new SCORM package."
-        return self.student_view(context=context);
+        return self.student_view(context=context)
 
     def student_view(self, context=None):
         self._get_package_file_and_extract()
