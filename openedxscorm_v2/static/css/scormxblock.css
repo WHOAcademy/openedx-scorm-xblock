@@ -17,12 +17,12 @@
     position: fixed;
     border: none;
     overflow: hidden;
-    top: 0;
+    top: 55px;
     right: 0;
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 100%;
+    height: calc(100% - 65px);
     z-index: 10000;
 }
 
@@ -38,12 +38,6 @@
     height: 100%;
     z-index: 10000;
     background-color: #ffffff;
-}
-
-/* adjusted styles for studio view */
-.openedxscorm_block.openedxscorm-studio .full-screen-scorm  .scorm_object {
-    top: 55px;
-    height: calc(100% - 65px);
 }
 
 .openedxscorm_block .scorm_button {

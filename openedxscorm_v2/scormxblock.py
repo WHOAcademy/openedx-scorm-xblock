@@ -159,9 +159,9 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
             context[
                 "message"
             ] = "Click 'Edit' to modify this module and upload a new SCORM package."
-        return self.student_view(context=context, viewer="creator");
+        return self.student_view(context=context);
 
-    def student_view(self, context=None, viewer="learner"):
+    def student_view(self, context=None):
         self._get_package_file_and_extract()
 
         student_context = {
@@ -171,10 +171,7 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
             "scorm_xblock": self,
         }
         student_context.update(context or {})
-        if viewer == 'creator': 
-            template = self.render_template("static/html/scormstudioxblock.html", student_context)
-        else: 
-            template = self.render_template("static/html/scormxblock.html", student_context)
+        template = self.render_template("static/html/scormxblock.html", student_context)
         frag = Fragment(template)
         frag.add_css(self.resource_string("static/css/scormxblock.css"))
         frag.add_javascript(self.resource_string("static/js/src/scormxblock.js"))
