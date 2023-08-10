@@ -59,3 +59,15 @@
 .openedxscorm_block .full-screen-scorm .full-screen-on {
     display: none;
 }
+
+/* mobile class */
+.content-wrapper__mobile{
+    margin-top: 0;
+    padding-bottom: 0;
+}
+.content-wrapper__mobile #main{
+    padding: 0;
+}
+.content-wrapper__mobile #main .unit-title,.content-wrapper__mobile #main .openedxscorm_block .scorm_button{
+    display: none;
+}

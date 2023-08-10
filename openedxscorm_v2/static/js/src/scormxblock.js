@@ -58,19 +58,6 @@ function ScormXBlock(runtime, element, settings) {
   }
 
   var fullscreenOnNextEvent = true;
-  function enterFullscreen() {
-    $(element).find(".js-scorm-block").addClass("full-screen-scorm");
-    triggerResize();
-  }
-  function exitFullscreen() {
-    $(element).find(".js-scorm-block").removeClass("full-screen-scorm");
-    fullscreenOnNextEvent = true;
-    triggerResize();
-  }
-  function triggerResize() {
-    // This is required to trigger the actual content resize in some packages
-    window.dispatchEvent(new Event("resize"));
-  }
 
   // We only make calls to the get_value handler when absolutely required.
   // These calls are synchronous and they can easily clog the scorm display.
@@ -217,5 +204,30 @@ function ScormXBlock(runtime, element, settings) {
       .on("click", function () {
         exitFullscreen();
       });
+
+    // check if scorm is opened in mobile
+    const isMobileView = new URLSearchParams(window.location.search).get(
+      "mobile"
+    );
+    if (isMobileView) {
+      $("#content").addClass("content-wrapper__mobile");
+    }
+    function enterFullscreen() {
+      if (!isMobileView) {
+        $(element).find(".js-scorm-block").addClass("full-screen-scorm");
+      }
+      triggerResize();
+    }
+    function exitFullscreen() {
+      if (!isMobileView) {
+        $(element).find(".js-scorm-block").removeClass("full-screen-scorm");
+      }
+      fullscreenOnNextEvent = true;
+      triggerResize();
+    }
+    function triggerResize() {
+      // This is required to trigger the actual content resize in some packages
+      window.dispatchEvent(new Event("resize"));
+    }
   });
 }
