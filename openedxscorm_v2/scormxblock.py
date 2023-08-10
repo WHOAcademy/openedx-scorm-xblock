@@ -133,13 +133,6 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         scope=Scope.settings,
     )
 
-    fullscreen_on_launch = Boolean(
-        display_name=_("Fullscreen on launch"),
-        help=_("Display in fullscreen mode on launch"),
-        default=False,
-        scope=Scope.settings,
-    )
-
     has_author_view = True
 
     def render_template(self, template_path, context):
@@ -179,7 +172,6 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
             "ScormXBlock",
             json_args={
                 "scorm_version": self.scorm_version,
-                "fullscreen_on_launch": self.fullscreen_on_launch,
                 "scorm_data": self.scorm_data,
             },
         )
@@ -197,7 +189,6 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
             "field_weight": self.fields["weight"],
             "field_width": self.fields["width"],
             "field_height": self.fields["height"],
-            "field_fullscreen_on_launch": self.fields["fullscreen_on_launch"],
             "scorm_xblock": self,
         }
         studio_context.update(context or {})
@@ -221,7 +212,6 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         self.height = parse_int(request.params["height"], None)
         self.has_score = request.params["has_score"] == "1"
         self.weight = parse_float(request.params["weight"], 1)
-        self.fullscreen_on_launch = request.params["fullscreen_on_launch"] == "1"
         self.icon_class = "problem" if self.has_score else "video"
         self.scorm_file = request.params.get("scorm_file")
 

@@ -108,9 +108,6 @@ function ScormXBlock(runtime, element, settings) {
     // when the setting is enabled
     if (fullscreenOnNextEvent) {
       fullscreenOnNextEvent = false;
-      if (settings.fullscreen_on_launch) {
-        enterFullscreen();
-      }
     }
     SetValueAsync(cmi_element, value);
     return "true";
