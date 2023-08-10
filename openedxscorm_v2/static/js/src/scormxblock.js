@@ -210,7 +210,7 @@ function ScormXBlock(runtime, element, settings) {
       "mobile"
     );
     if (isMobileView) {
-      $("#content").addClass("content-wrapper__mobile");
+      $("body").addClass("mobile");
     }
     function enterFullscreen() {
       if (!isMobileView) {
