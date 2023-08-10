@@ -61,13 +61,13 @@
 }
 
 /* mobile class */
-.content-wrapper__mobile{
+body.mobile #content{
     margin-top: 0;
     padding-bottom: 0;
 }
-.content-wrapper__mobile #main{
+body.mobile #content #main{
     padding: 0;
 }
-.content-wrapper__mobile #main .unit-title,.content-wrapper__mobile #main .openedxscorm_block .scorm_button{
+body.mobile #content #main .unit-title, body.mobile #content #main .openedxscorm_block .scorm_button{
     display: none;
 }
