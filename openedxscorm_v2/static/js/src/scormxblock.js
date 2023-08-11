@@ -192,6 +192,13 @@ function ScormXBlock(runtime, element, settings) {
       GetScore: GetScore,
       CommitData: CommitData,
     };
+    // check if scorm is opened in mobile
+    const isMobileView = new URLSearchParams(window.location.search).get(
+      "mobile"
+    );
+    if (isMobileView) {
+      $("#content").addClass("mobile");
+    }
     enterFullscreen();
     // added click event listener for fullscreen buttons in studio
     $(element)
@@ -205,13 +212,6 @@ function ScormXBlock(runtime, element, settings) {
         exitFullscreen();
       });
 
-    // check if scorm is opened in mobile
-    const isMobileView = new URLSearchParams(window.location.search).get(
-      "mobile"
-    );
-    if (isMobileView) {
-      $("body").addClass("mobile");
-    }
     function enterFullscreen() {
       if (!isMobileView) {
         $(element).find(".js-scorm-block").addClass("full-screen-scorm");
