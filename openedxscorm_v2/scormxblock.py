@@ -85,6 +85,11 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         default="",
         scope=Scope.settings,
     )
+    scorm_file_url = String(
+        display_name=_("SCORM File URL"),
+        default="",
+        scope=Scope.settings,
+    )
     index_page_path = String(
         display_name=_("Path to the index page in scorm file"), scope=Scope.settings
     )
@@ -262,7 +267,9 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
             )
         # Since course content names are unique we are sure that we
         # can't have multiple results, so we just pop the first.
-        return scorm_content.pop()
+        scorm_content = scorm_content.pop()
+        self.scorm_file_url = scorm_content.get('filename', '')
+        return scorm_content
 
     def _get_package_file_and_extract(self):
         """
