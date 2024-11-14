@@ -216,7 +216,7 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         self.scorm_file = request.params.get("scorm_file")
 
         response = {"result": "success", "errors": []}
-        
+
         if not self.scorm_file:
             # File not uploaded
             return self.json_response(response)
@@ -224,7 +224,9 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         try:
             package_file = self._get_package_file()
         except Exception:
-            response["errors"].append("SCORM package not found. Make sure the name is correct and the file type is '.zip' ")
+            response["errors"].append(
+                "SCORM package not found. Make sure the name is correct and the file type is '.zip' "
+            )
             return self.json_response(response)
 
         self.update_package_meta(package_file)
@@ -257,9 +259,7 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
             },
         )
         if not count:
-            raise Exception(
-                'SCORM package "{}" not found'.format(self.scorm_file)
-            )
+            raise Exception('SCORM package "{}" not found'.format(self.scorm_file))
         # Since course content names are unique we are sure that we
         # can't have multiple results, so we just pop the first.
         return scorm_content.pop()
@@ -271,19 +271,22 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         """
         # Check if the `package_meta` has `sha1` key to make sure
         # if the package name is not empty
-        if "sha1" in self.package_meta and not self.storage.exists(self.extract_folder_path):
+        if "sha1" in self.package_meta and not self.storage.exists(
+            self.extract_folder_path
+        ):
             logger.info(
-                'SCORM package is not extracted in "%s". Extracting it now.', self.extract_folder_path
+                'SCORM package is not extracted in "%s". Extracting it now.',
+                self.extract_folder_path,
             )
             try:
                 package_file = self._get_package_file()
                 self.extract_package(package_file)
             except Exception as e:
                 logger.warning(e)
-    
+
     def _get_package_file(self):
         """
-        Convert the file content (in bytes) to a ContentFile and return it 
+        Convert the file content (in bytes) to a ContentFile and return it
         """
         scorm_package = self._search_scorm_package()
         # We are actually loading the whole zipfile in memory.
@@ -407,6 +410,8 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         completion_status = None
         lesson_score = None
 
+        is_completed = self.lesson_status == "completed"
+
         if name == "cmi.core.lesson_status":
             lesson_status = data.get("value")
             if lesson_status in ["passed", "failed"]:
@@ -433,19 +438,23 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
             context.update({"grade": self.get_grade()})
         # Code commented out as this call marks the unit as completed even if completion_percent < 1
         # if completion_percent is not None:
-            # self.emit_completion(completion_percent)
+        # self.emit_completion(completion_percent)
         if completion_status:
             self.lesson_status = completion_status
             context.update({"completion_status": completion_status})
         if success_status:
             self.success_status = success_status
-        if success_status == "passed" or completion_status == "completed":
+        if (
+            success_status == "passed"
+            or completion_status == "completed"
+            or (is_completed and lesson_score)
+        ):
             self.publish_completion()
             if self.has_score:
                 self.publish_grade()
 
         return context
-    
+
     def publish_completion(self):
         """
         Utility method used to mark a vertical block as complete.
@@ -461,9 +470,9 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         )
 
     def get_grade(self):
-        lesson_score = 0 if self.is_failed else self.lesson_score
-
         """
+        Send the actual grade value to the edX side, irrespective of the student's pass or fail status,
+
         We expect the scorm events to be published in the
         following order
 
@@ -474,21 +483,13 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
 
         but some SCORM packages publish the completion_status
         first followed by score
-        
+
         ```
         completion_status
         score
         ```
-
-        Since the grading is needed for Open edX to mark the
-        course as complete, we hard coded the score to 1
-        this score is only used by Open edX and it won't affect
-        the digital credentials score
         """
-        if lesson_score == 0:
-            lesson_score = 1
-
-        return lesson_score * self.weight
+        return self.lesson_score * self.weight
 
     @property
     def is_failed(self):
