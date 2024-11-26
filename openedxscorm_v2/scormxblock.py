@@ -450,8 +450,8 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
             or (is_completed and lesson_score)
         ):
             self.publish_completion()
-            if self.has_score:
-                self.publish_grade()
+        if (self.has_score and lesson_score and lesson_score > 0):
+            self.publish_grade()
 
         return context
 
