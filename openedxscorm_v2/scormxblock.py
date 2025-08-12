@@ -173,7 +173,8 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
             json_args={
                 "scorm_version": self.scorm_version,
                 "scorm_data": self.scorm_data,
-                "lesson_status": self.lesson_status
+                "lesson_status": self.lesson_status,
+                "success_status": self.success_status
             },
         )
         return frag

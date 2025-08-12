@@ -78,7 +78,7 @@ function ScormXBlock(runtime, element, settings) {
       *
       * To address this, the following logic checks if the lesson is already marked as completed in the first table (via settings.lesson_status). If so, it will trigger the second API (by calling SetValue for "cmi.completion_status") exactly once per user visit, regardless of whether the second API succeeds or fails. This avoids repeated or unnecessary API calls, but ensures that a missed completion is retried at least once for every user.
      */
-    if(settings.lesson_status == "completed" && !completionCheckTriggered) {
+    if((settings.lesson_status == "completed" || settings.success_status == "passed") && !completionCheckTriggered) {
       completionCheckTriggered = true;
       SetValue("cmi.completion_status", "completed")
     }
