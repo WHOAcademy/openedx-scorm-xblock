@@ -58,6 +58,7 @@ function ScormXBlock(runtime, element, settings) {
   }
 
   var fullscreenOnNextEvent = true;
+  var completionCheckTriggered = false;
 
   // We only make calls to the get_value handler when absolutely required.
   // These calls are synchronous and they can easily clog the scorm display.
@@ -70,6 +71,18 @@ function ScormXBlock(runtime, element, settings) {
   ];
   var getValueUrl = runtime.handlerUrl(element, "scorm_get_value");
   var GetValue = function (cmi_element) {
+    /**
+      * UC-269: Fix for completion status not being set when the lesson is completed.
+      *
+      * There are two backend tables/APIs involved in tracking completion. Sometimes, the first API (which updates scorm_data.suspend_data) succeeds and marks the lesson as completed, but the second API (publish_completion, which updates the block completion table) fails, leaving the user's completion status incomplete.
+      *
+      * To address this, the following logic checks if the lesson is already marked as completed in the first table (via settings.lesson_status). If so, it will trigger the second API (by calling SetValue for "cmi.completion_status") exactly once per user visit, regardless of whether the second API succeeds or fails. This avoids repeated or unnecessary API calls, but ensures that a missed completion is retried at least once for every user.
+     */
+    if(settings.lesson_status == "completed" && !completionCheckTriggered) {
+      completionCheckTriggered = true;
+      SetValue("cmi.completion_status", "completed")
+    }
+    
     if (cmi_element in uncachedValues) {
       var response = $.ajax({
         type: "POST",
