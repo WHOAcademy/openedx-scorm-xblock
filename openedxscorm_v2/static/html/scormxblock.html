@@ -12,7 +12,7 @@
                 {% trans "Exit fullscreen" %}
             </button>
         </div>
-        <iframe class="scorm_object" src="{{ index_page_url }}" width="{% if scorm_xblock.width %}{{ scorm_xblock.width }}{% else %}100%{% endif %}" {% if scorm_xblock.height %}height="{{ scorm_xblock.height }}" {% endif %}></iframe>
+        <iframe id="scorm-iframe-175525" class="scorm_object" src="{{ index_page_url }}" width="{% if scorm_xblock.width %}{{ scorm_xblock.width }}{% else %}100%{% endif %}" {% if scorm_xblock.height %}height="{{ scorm_xblock.height }}" {% endif %}></iframe>
     </div>
     {% elif message %}
     <p>{{ message }}</p>

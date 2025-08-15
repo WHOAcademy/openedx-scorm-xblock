@@ -1,3 +1,49 @@
+
+/**
+ * Checks if a SCORM course created using the Adapt Learning tool is completed.
+ * Adapt Learning stores the completion status inside the cmi.suspend_data object.
+ * The key 'c' in this object contains the completion status, where c === "hIA" means the course is completed.
+ * This function parses the suspend_data (which may be a JSON string or an object) and returns true if the course is completed.
+ */
+function isAdaptLearningToolStatusCompleted(scorm_data) {
+  var suspendData = scorm_data && scorm_data["cmi.suspend_data"];
+  if (!suspendData) {
+    return false;
+  }
+
+  var parsedSuspendData = null;
+  if (typeof suspendData === "string") {
+    // Some Adapt packages store suspend_data as a JSON string
+    try {
+      parsedSuspendData = JSON.parse(suspendData);
+    } catch (e) {
+      return false;
+    }
+  } else if (typeof suspendData === "object") {
+    parsedSuspendData = suspendData;
+  } else {
+    return false;
+  }
+
+  if (!parsedSuspendData) {
+    return false;
+  }
+
+  if (typeof parsedSuspendData.c === "string") {
+    try {
+      // https://github.com/adaptlearning/adapt-contrib-spoor?tab=readme-ov-file#print-completion-information-from-lms-data
+      // https://github.com/adaptlearning/adapt-contrib-spoor/blob/f6212e6dfd7a3159e8c46e6cd6f7dd77eefec2b1/js/adapt-stateful-session.js#L155-L157
+      var lmsIframe = document.getElementById("scorm-iframe-175525");
+      var courseComplete = lmsIframe.contentWindow.SCORMSuspendData.deserialize(parsedSuspendData.c)[0];
+      return courseComplete === true;
+    } catch(e) {
+      return false;
+    }
+  }
+
+  return false;
+}
+
 function ScormXBlock(runtime, element, settings) {
   function SCORM_12_API() {
     this.LMSInitialize = function () {
@@ -57,44 +103,6 @@ function ScormXBlock(runtime, element, settings) {
     };
   }
 
-  /**
-   * Checks if a SCORM course created using the Adapt Learning tool is completed.
-   * Adapt Learning stores the completion status inside the cmi.suspend_data object.
-   * The key 'c' in this object contains the completion status, where c === "hIA" means the course is completed.
-   * This function parses the suspend_data (which may be a JSON string or an object) and returns true if the course is completed.
-   */
-  var isAdaptLearningToolStatusCompleted = function(scorm_data) {
-    var suspendData = scorm_data && scorm_data["cmi.suspend_data"];
-    if (!suspendData) {
-      return false;
-    }
-
-    var parsedSuspendData = null;
-    if (typeof suspendData === "string") {
-      // Some Adapt packages store suspend_data as a JSON string
-      try {
-        parsedSuspendData = JSON.parse(suspendData);
-      } catch (e) {
-        return false;
-      }
-    } else if (typeof suspendData === "object") {
-      parsedSuspendData = suspendData;
-    } else {
-      return false;
-    }
-
-    if (!parsedSuspendData) {
-      return false;
-    }
-
-    // "c" === "hIA" indicates completed
-    if (parsedSuspendData.c === "hIA") {
-      return true;
-    }
-
-    return false;
-  }
-
   var fullscreenOnNextEvent = true;
   var completionCheckTriggered = false;
 
@@ -116,7 +124,7 @@ function ScormXBlock(runtime, element, settings) {
       *
       * To address this, the following logic checks if the lesson is already marked as completed in the first table (via settings.lesson_status). If so, it will trigger the second API (by calling SetValue for "cmi.completion_status") exactly once per user visit, regardless of whether the second API succeeds or fails. This avoids repeated or unnecessary API calls, but ensures that a missed completion is retried at least once for every user.
      */
-    if(!completionCheckTriggered && (settings.lesson_status == "completed" || settings.success_status == "passed" || isAdaptLearningToolStatusCompleted(settings.scorm_data) === true)) {
+    if(cmi_element === "cmi.suspend_data" && !completionCheckTriggered && isAdaptLearningToolStatusCompleted(settings.scorm_data) === true) {
       completionCheckTriggered = true;
       SetValue("cmi.completion_status", "completed")
     }
