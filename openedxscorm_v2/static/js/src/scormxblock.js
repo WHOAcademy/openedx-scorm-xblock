@@ -123,8 +123,10 @@ function ScormXBlock(runtime, element, settings) {
       * There are two backend tables/APIs involved in tracking completion. Sometimes, the first API (which updates scorm_data.suspend_data) succeeds and marks the lesson as completed, but the second API (publish_completion, which updates the block completion table) fails, leaving the user's completion status incomplete.
       *
       * To address this, the following logic checks if the lesson is already marked as completed in the first table (via settings.lesson_status). If so, it will trigger the second API (by calling SetValue for "cmi.completion_status") exactly once per user visit, regardless of whether the second API succeeds or fails. This avoids repeated or unnecessary API calls, but ensures that a missed completion is retried at least once for every user.
+      * 
+      * UC-330: `settings.success_status === "passed"` is a fallback for cases where the SCORM packages only sends `lesson_status`
      */
-    if(cmi_element === "cmi.suspend_data" && !completionCheckTriggered && isAdaptLearningToolStatusCompleted(settings.scorm_data) === true) {
+    if(cmi_element === "cmi.suspend_data" && !completionCheckTriggered && (isAdaptLearningToolStatusCompleted(settings.scorm_data) === true || settings.success_status === "passed")) {
       completionCheckTriggered = true;
       SetValue("cmi.completion_status", "completed")
     }
