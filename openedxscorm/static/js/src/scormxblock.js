@@ -1,3 +1,33 @@
+function isAdaptLearningToolStatusCompleted(scormData, scormWindow) {
+    var suspendData = scormData && scormData["cmi.suspend_data"];
+    if (!suspendData) {
+        return false;
+    }
+
+    var parsedSuspendData = null;
+    if (typeof suspendData === "string") {
+        try {
+            parsedSuspendData = JSON.parse(suspendData);
+        } catch (e) {
+            return false;
+        }
+    } else if (typeof suspendData === "object") {
+        parsedSuspendData = suspendData;
+    } else {
+        return false;
+    }
+
+    if (!parsedSuspendData || typeof parsedSuspendData.c !== "string") {
+        return false;
+    }
+
+    try {
+        return scormWindow.SCORMSuspendData.deserialize(parsedSuspendData.c)[0] === true;
+    } catch (e) {
+        return false;
+    }
+}
+
 function ScormXBlock(runtime, element, settings) {
 
     // Fullscreen
@@ -192,24 +222,35 @@ function ScormXBlock(runtime, element, settings) {
         "cmi.mode"
     ];
     var getValueUrl = runtime.handlerUrl(element, 'scorm_get_value');
-    var GetValue = function (cmi_element) {   
+    var completionCheckTriggered = false;
+    var GetValue = function (cmi_element) {
+        if (cmi_element === "cmi.suspend_data" && !completionCheckTriggered) {
+            var iframe = $(element).find(".scorm-embedded").get(0);
+            var iframeWindow = iframe && iframe.contentWindow;
+            var isCompletionRecovered = (
+                isAdaptLearningToolStatusCompleted(settings.scorm_data, iframeWindow) ||
+                settings.success_status === "passed"
+            );
+            if (isCompletionRecovered) {
+                completionCheckTriggered = true;
+                SetValue("cmi.completion_status", "completed");
+            }
+        }
+
         // Only make a call if navigation menu was not used
         // Otherwise the synchronous calls are blocked by chromium on page unload
         if (uncachedValues.includes(cmi_element) && !navigationClick){
-            $.ajax({
+            var response = $.ajax({
                 type: "POST",
                 url: getValueUrl,
                 data: JSON.stringify({
                     'name': cmi_element,
                     'url': window.location.href
                 }),
-                async: false,
-                success: function (response) {
-                    // Set to false to allow for other calls by the SCORM api
-                    navigationClick = false;
-                    return response.value;
-                }
+                async: false
             });
+            navigationClick = false;
+            return JSON.parse(response.responseText).value;
         } else if (cmi_element in settings.scorm_data) {
             navigationClick = false;
             return settings.scorm_data[cmi_element];

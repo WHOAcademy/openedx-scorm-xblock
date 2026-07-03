@@ -210,6 +210,8 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
                 "popup_height": self.height or 800,
                 "scorm_data": self.scorm_data,
                 "block_height": self.height or 450,
+                "lesson_status": self.lesson_status,
+                "success_status": self.success_status,
             },
         )
         return frag
@@ -638,11 +640,10 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         """
         # For backwards compatibility, we return the old path if the directory exists
         if self.path_exists(self.extract_old_folder_base_path):
+            if "scorm_v2" in self.extract_old_folder_base_path:
+                return os.path.join(self.scorm_location(), self._hashed_usage_id)
             return self.extract_old_folder_base_path
-        sha1 = hashlib.sha1()
-        sha1.update(str(self.scope_ids.usage_id).encode())
-        hashed_usage_id = sha1.hexdigest()
-        return os.path.join(self.scorm_location(), hashed_usage_id)
+        return os.path.join(self.scorm_location(), self._hashed_usage_id)
     
     @property
     def extract_old_folder_base_path(self):
@@ -653,6 +654,12 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         Only keeping this here for backwards compatibility.
         """
         return os.path.join(self.scorm_location(), self.location.block_id)
+
+    @property
+    def _hashed_usage_id(self):
+        sha1 = hashlib.sha1()
+        sha1.update(str(self.scope_ids.usage_id).encode())
+        return sha1.hexdigest()
 
     def get_mode(self, data):
         if "preview" in data["url"]:
@@ -700,8 +707,6 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         completion_status = None
         lesson_score = None
 
-        is_completed = self.lesson_status == "completed"
-
         self.scorm_data[name] = value
         if name == "cmi.core.lesson_status":
             lesson_status = value
@@ -735,13 +740,8 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
             self.success_status = success_status
         if completion_status == "completed":
             self.emit_completion(1)
-        if (
-            success_status
-            or completion_status == "completed"
-            or (is_completed and lesson_score)
-        ):
-            if self.has_score:
-                self.publish_grade()
+        if self.has_score and lesson_score and lesson_score > 0:
+            self.publish_grade()
 
         return context
 
@@ -753,8 +753,7 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         )
 
     def get_grade(self):
-        lesson_score = 0 if self.is_failed else self.lesson_score
-        return lesson_score * self.weight
+        return self.lesson_score * self.weight
 
     @property
     def is_failed(self):
