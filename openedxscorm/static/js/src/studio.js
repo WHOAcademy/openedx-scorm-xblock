@@ -4,7 +4,7 @@ function ScormStudioXBlock(runtime, element) {
 
     $(element).find('.save-button').bind('click', function () {
         var form_data = new FormData();
-        var file_data = $(element).find('#scorm_file').prop('files')[0];
+        var scorm_file = $(element).find('input[name=scorm_file]').val();
         var display_name = $(element).find('input[name=display_name]').val();
         var has_score = $(element).find('select[name=has_score]').val();
         var enable_navigation_menu = $(element).find('select[name=enable_navigation_menu]').val();
@@ -15,7 +15,7 @@ function ScormStudioXBlock(runtime, element) {
         var navigation_menu_width = $(element).find('input[name=navigation_menu_width]').val();
         var popup_on_launch = $(element).find('select[name=popup_on_launch]').val();
 
-        form_data.append('file', file_data);
+        form_data.append('scorm_file', scorm_file);
         form_data.append('display_name', display_name);
         form_data.append('has_score', has_score);
         form_data.append('enable_navigation_menu', enable_navigation_menu);

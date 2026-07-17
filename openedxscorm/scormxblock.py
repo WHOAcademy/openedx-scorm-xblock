@@ -43,6 +43,13 @@ except ImportError:
     CourseEnrollment = None
     StudentModule = None
 
+try:
+    # Used by the scorm_v2 upload flow to look up the package that the author
+    # uploaded through the Studio "Files & Uploads" (contentstore) screen.
+    from xmodule.contentstore.django import contentstore
+except ImportError:
+    contentstore = None
+
 
 # Make '_' a no-op so we can scrape strings
 def _(text):
@@ -61,6 +68,14 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         display_name=_("Display Name"),
         help=_("Display name for this module"),
         default="Scorm module",
+        scope=Scope.settings,
+    )
+    scorm_file = String(
+        display_name=_("SCORM file package"),
+        help=_(
+            'Name of the SCORM Zip file uploaded through the "Files & Uploads" section of the Course.  Only ".zip" files allowed.'
+        ),
+        default="",
         scope=Scope.settings,
     )
     index_page_path = String(
@@ -184,6 +199,7 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         return self.student_view(context=context)
 
     def student_view(self, context=None):
+        self._get_package_file_and_extract()
         student_context = {
             "index_page_url": urllib.parse.unquote(self.index_page_url),
             "completion_status": self.lesson_status,
@@ -222,6 +238,14 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         Proxy view for serving assets. It receives a request with the path to the asset to serve
         and returns the asset's file contents.
 
+        Assets are resolved using the full relative path requested (``suffix``),
+        the same way ``index_page_url`` resolves the entry page, rather than
+        by filename alone. Packages containing many sub-libraries that share
+        filenames across folders (H5P-in-SCORM exports are a common case:
+        every library ships its own ``library.json``/``styles.css``) would
+        otherwise resolve to the first same-named file found anywhere in the
+        package instead of the one actually being requested.
+
         Parameters:
         ----------
         request : django.http.request.HttpRequest
@@ -233,20 +257,21 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         -------
         Response object containing the content of the requested file with the appropriate content type.
         """
-        file_name = os.path.basename(suffix)
-        file_path = self.find_file_path(file_name)
-        file_type, _ = mimetypes.guess_type(file_name)
-        with self.storage.open(file_path) as response:
-            file_content = response.read()
-
+        file_path = self.find_asset_path(suffix)
+        file_type, _ = mimetypes.guess_type(file_path)
+        file_type = file_type or "application/octet-stream"
+        with self.storage.open(file_path) as fh:
+            file_content = fh.read()
 
         return Response(file_content, content_type=file_type)
 
     def studio_view(self, context=None):
         # Note that we cannot use xblockutils's StudioEditableXBlockMixin because we
         # need to support package file uploads.
+        self._get_package_file_and_extract()
         studio_context = {
             "field_display_name": self.fields["display_name"],
+            "field_scorm_file": self.fields["scorm_file"],
             "field_has_score": self.fields["has_score"],
             "field_weight": self.fields["weight"],
             "field_width": self.fields["width"],
@@ -286,13 +311,24 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         self.weight = parse_float(request.params["weight"], 1)
         self.popup_on_launch = request.params["popup_on_launch"] == "1"
         self.icon_class = "problem" if self.has_score else "video"
+        self.scorm_file = request.params.get("scorm_file")
 
         response = {"result": "success", "errors": []}
-        if not hasattr(request.params["file"], "file"):
+        if not self.scorm_file:
             # File not uploaded
             return self.json_response(response)
 
-        package_file = request.params["file"].file
+        # The scorm_v2 flow references a package uploaded to "Files & Uploads"
+        # by name and fetches it from the contentstore, rather than receiving
+        # the file directly in this request.
+        try:
+            package_file = self._get_package_file()
+        except Exception:  # pylint: disable=broad-except
+            response["errors"].append(
+                "SCORM package not found. Make sure the name is correct and the file type is '.zip' "
+            )
+            return self.json_response(response)
+
         self.update_package_meta(package_file)
 
         # Clean storage folder, if it already exists
@@ -306,6 +342,63 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
             response["errors"].append(e.args[0])
 
         return self.json_response(response)
+
+    def _search_scorm_package(self):
+        """
+        Search the Studio "Files & Uploads" (contentstore) for the SCORM zip
+        whose display name matches ``self.scorm_file`` and return its asset
+        metadata. Ported from the scorm_v2 upload flow.
+        """
+        scorm_content, count = contentstore().get_all_content_for_course(
+            self.runtime.course_id,
+            filter_params={
+                "contentType": {
+                    "$in": ["application/zip", "application/x-zip-compressed"]
+                },
+                "displayname": self.scorm_file,
+            },
+        )
+        if not count:
+            raise Exception('SCORM package "{}" not found'.format(self.scorm_file))
+        # Course content names are unique, so the first match is the one.
+        return scorm_content.pop()
+
+    def _get_package_file(self):
+        """
+        Fetch the SCORM zip bytes from the contentstore asset resolved by
+        ``_search_scorm_package`` and wrap them in a named ``ContentFile`` so
+        the existing extract/metadata pipeline can consume it. Ported from the
+        scorm_v2 upload flow.
+        """
+        scorm_package = self._search_scorm_package()
+        scorm_zipfile_data = contentstore().find(scorm_package["asset_key"]).data
+        return ContentFile(scorm_zipfile_data, name=self.scorm_file)
+
+    def _get_package_file_and_extract(self):
+        """
+        If the package was uploaded (``package_meta`` has a sha1) but the
+        extracted tree is missing from storage, re-extract it from the
+        contentstore. Ported from the scorm_v2 flow.
+
+        This is the recovery path for existing scorm_v2 courses whose OLX
+        exports predate ulmo's rezip bundling: ulmo's rezip/rehydrate can only
+        restore from an OLX bundle or another storage bucket, so the
+        contentstore is the only source that can rebuild those packages.
+        Runs before ulmo's storage-based rehydrate and no-ops if the folder
+        already exists, so the two mechanisms are complementary, not competing.
+        """
+        if "sha1" in self.package_meta and not self.path_exists(
+            self.extract_folder_path
+        ):
+            logger.info(
+                'SCORM package is not extracted in "%s". Extracting it now.',
+                self.extract_folder_path,
+            )
+            try:
+                package_file = self._get_package_file()
+                self.extract_package(package_file)
+            except Exception as e:  # pylint: disable=broad-except
+                logger.warning(e)
 
     @XBlock.handler
     def popup_window(self, request, _suffix):
@@ -706,6 +799,7 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         success_status = None
         completion_status = None
         lesson_score = None
+        is_completed = self.lesson_status == "completed"
 
         self.scorm_data[name] = value
         if name == "cmi.core.lesson_status":
@@ -718,6 +812,8 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
                 completion_status = lesson_status
         elif name == "cmi.success_status":
             success_status = value
+            if success_status == "passed":
+                completion_status = "completed"
         elif name == "cmi.completion_status":
             completion_status = value
         elif name in ["cmi.core.score.raw", "cmi.score.raw"] and self.has_score:
@@ -731,14 +827,15 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         if lesson_score is not None:
             self.lesson_score = lesson_score
             context.update({"grade": self.get_grade()})
-        if completion_percent is not None:
-            self.emit_completion(completion_percent)
+        # Code commented out as this call marks the unit as completed even if completion_percent < 1
+        # if completion_percent is not None:
+        #     self.emit_completion(completion_percent)
         if completion_status:
             self.lesson_status = completion_status
             context.update({"completion_status": completion_status})
         if success_status:
             self.success_status = success_status
-        if completion_status == "completed":
+        if completion_status == "completed" or (is_completed and lesson_score is not None):
             self.emit_completion(1)
         if self.has_score and lesson_score and lesson_score > 0:
             self.publish_grade()
@@ -959,6 +1056,21 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
                 return path
         return None
 
+    def find_asset_path(self, relative_path):
+        """
+        Resolve ``relative_path`` (as requested by the browser, relative to
+        the package root — e.g. ``"FontAwesome-4.5/library.json"``) against
+        the extraction folder. Mirrors ``index_page_url``'s exact
+        current-vs-legacy-folder pattern instead of searching by filename, so
+        packages with same-named files in different folders (H5P-in-SCORM
+        exports are a common case) resolve to the file actually requested.
+        """
+        relative_path = self.clean_path(relative_path).lstrip("/")
+        folder = self.extract_folder_path
+        if self.storage.exists(os.path.join(self.extract_folder_base_path, relative_path)):
+            folder = self.extract_folder_base_path
+        return os.path.join(folder, relative_path)
+
     def scorm_location(self):
         """
         Unzipped files will be stored in a media folder with this name, and thus
@@ -989,6 +1101,7 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
 
         Note: we are not sure what this view is for and it might be removed in the future.
         """
+        self._get_package_file_and_extract()
         if self.index_page_url:
             return {
                 "last_modified": self.package_meta.get("last_updated", ""),

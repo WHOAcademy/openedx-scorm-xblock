@@ -159,7 +159,7 @@ function ScormXBlock(runtime, element, settings) {
             data: {
                 'id': request.term
             },
-        }).success(function (data) {
+        }).done(function (data) {
             if (data.length === 0) {
                 noStudentFound()
             }
@@ -193,11 +193,11 @@ function ScormXBlock(runtime, element, settings) {
             data: {
                 'id': studentId
             },
-        }).success(function (data) {
+        }).done(function (data) {
             reportElement.html(renderjson.set_show_to_level(1)(data));
         }).fail(function () {
             reportElement.html("No data found");
-        }).complete(function () {
+        }).always(function () {
             $(element).find(".reload-report").removeClass("reports-togglable-off");
         });
     }
@@ -315,10 +315,37 @@ function ScormXBlock(runtime, element, settings) {
         });
     };
 
+    // Added to fix MCM Score issue (ported from the scorm_v2 package).
+    // Some packages report their score through window.lmsAPI instead of the
+    // standard SCORM API, so we expose a minimal scoring bridge over SetValue/GetValue.
+    // http://rustici-docs.s3.amazonaws.com/driver/Function-List.html#scoring
+    var SetScore = function (intScore, intMaxScore, intMinScore) {
+        if (settings.scorm_version == "SCORM_12") {
+            SetValue("cmi.core.score.raw", intScore);
+        } else {
+            SetValue("cmi.score.raw", intScore);
+        }
+    };
+    var GetScore = function () {
+        if (settings.scorm_version == "SCORM_12") {
+            return GetValue("cmi.core.score.raw");
+        } else {
+            return GetValue("cmi.score.raw");
+        }
+    };
+    var CommitData = function () {
+        return true;
+    };
+
     $(function ($) {
         initScorm(settings.scorm_version, GetValue, SetValue);
         initFullscreen();
         initPopupWindow();
         initReports();
+        window.lmsAPI = {
+            SetScore: SetScore,
+            GetScore: GetScore,
+            CommitData: CommitData,
+        };
     });
 }
