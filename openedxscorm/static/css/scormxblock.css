@@ -95,6 +95,20 @@
     margin-top: 2rem;
 }
 
+/* Fullscreen view (?mobile=true or ?fullscreen=true): ".fullscreen-enabled"
+   already pins the content over the page; fill it and hide the unit title */
+body:has(.scorm-xblock.fullscreen-view) .unit-title {
+    display: none;
+}
+.scorm-xblock.fullscreen-view .scorm-panel,
+.scorm-xblock.fullscreen-view .scorm-pane {
+    width: 100% !important;
+    height: 100% !important;
+}
+.scorm-xblock.fullscreen-view .scorm-embedded {
+    height: 100%;
+}
+
 /* Popup window */
 .scorm-xblock:not(.can-popup) .popup-wrapper {
     display: none;

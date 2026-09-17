@@ -198,8 +198,27 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         context["can_view_student_reports"] = True
         return self.student_view(context=context)
 
+    @staticmethod
+    def is_fullscreen_view(context):
+        """
+        Whether the block fills the whole page without its points, fullscreen
+        controls or the unit title. The LMS passes the query parameters of
+        ``/xblock/<usage_id>`` on to the block context:
+
+        - ``?mobile=true``: the mobile apps, which show the unit in their own
+          content area.
+        - ``?fullscreen=true``: the LXP VLE, which shows the unit in an iframe
+          below its own header.
+        """
+        context = context or {}
+        return any(
+            str(context.get(param, "")).lower() in ("true", "1")
+            for param in ("mobile", "fullscreen")
+        )
+
     def student_view(self, context=None):
         self._get_package_file_and_extract()
+        fullscreen_view = self.is_fullscreen_view(context)
         student_context = {
             "index_page_url": urllib.parse.unquote(self.index_page_url),
             "completion_status": self.lesson_status,
@@ -210,6 +229,7 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
             "popup_on_launch": self.popup_on_launch,
         }
         student_context.update(context or {})
+        student_context["fullscreen_view"] = fullscreen_view
         self.initialize_student_info()
         template = self.render_template("static/html/scormxblock.html", student_context)
         frag = Fragment(template)

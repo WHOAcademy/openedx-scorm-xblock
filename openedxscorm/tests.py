@@ -266,3 +266,32 @@ class ScormXBlockTests(unittest.TestCase):
             "cmi.core.student_name",
         ]
         self.assertTrue(key in block.scorm_data for key in student_info_keys)
+
+    @data(
+        ({"mobile": "true"}, True),
+        ({"mobile": "1"}, True),
+        ({"fullscreen": "true"}, True),
+        ({"mobile": "false"}, False),
+        ({"fullscreen": "false"}, False),
+        ({}, False),
+        (None, False),
+    )
+    def test_is_fullscreen_view(self, value):
+        context, expected = value
+        self.assertEqual(ScormXBlock.is_fullscreen_view(context), expected)
+
+    @data(True, False)
+    @mock.patch(
+        "openedxscorm.scormxblock.ScormXBlock.index_page_url",
+        new_callable=mock.PropertyMock,
+        return_value="https://example.com/index.html",
+    )
+    def test_student_view_fullscreen_hides_chrome(self, fullscreen, _index_page_url):
+        block = self.make_one(has_score=True, enable_fullscreen_button=True)
+
+        context = {"fullscreen": "true"} if fullscreen else {}
+        content = block.student_view(context).content
+
+        self.assertEqual("fullscreen-view" in content, fullscreen)
+        self.assertEqual("fullscreen-controls" not in content, fullscreen)
+        self.assertEqual('class="grade"' not in content, fullscreen)
