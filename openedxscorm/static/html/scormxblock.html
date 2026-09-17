@@ -1,14 +1,14 @@
 {% load i18n %}
 
-<div class="scorm-xblock {% if scorm_xblock.enable_navigation_menu %}navigation-enabled{% endif %}">
-  {% if index_page_url %} {% if scorm_xblock.has_score %}
+<div class="scorm-xblock {% if scorm_xblock.enable_navigation_menu %}navigation-enabled{% endif %} {% if fullscreen_view %}fullscreen-enabled fullscreen-view{% endif %}">
+  {% if index_page_url %} {% if scorm_xblock.has_score and not fullscreen_view %}
   <p>
     (<span class="grade">{{ grade|floatformat }}</span>/{{ scorm_xblock.weight|floatformat }} {% trans "points" %})
   </p>
   {% endif %}
 
   <div class="scorm-content">
-            {% if scorm_xblock.enable_fullscreen_button %}
+            {% if scorm_xblock.enable_fullscreen_button and not fullscreen_view %}
             <div class="fullscreen-controls">
                 <button class="enter-fullscreen">{% trans "Fullscreen" %}</button>
                 <button class="exit-fullscreen">{% trans "Exit fullscreen" %}</button>
