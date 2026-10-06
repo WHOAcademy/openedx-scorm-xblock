@@ -173,10 +173,35 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
     def get_current_user(self):
         return self.runtime.service(self, "user").get_current_user()
 
+    @property
+    def is_anonymous_user(self):
+        """
+        Whether the block is rendered for a visitor with no Open edX account,
+        e.g. a public course in the LXP pre-login VLE. The LMS rejects their
+        POSTs to the state handlers with 403, so the package runs against a
+        client-side copy of the cmi data and nothing is persisted.
+
+        Memoized for the request: ``set_value`` checks it on every cmi write.
+        """
+        if getattr(self, "_is_anonymous_user", None) is None:
+            user_service = self.runtime.service(self, "user")
+            self._is_anonymous_user = (
+                user_service is None
+                or not user_service.get_current_user().opt_attrs.get(
+                    "edx-platform.is_authenticated"
+                )
+            )
+        return self._is_anonymous_user
+
     def initialize_student_info(self):
-        user_id = self.get_current_user_attr("edx-platform.user_id")
-        username = self.get_current_user_attr("edx-platform.username")
-        
+        if self.is_anonymous_user:
+            # anonymous: no learner identity
+            user_id = ""
+            username = ""
+        else:
+            user_id = self.get_current_user_attr("edx-platform.user_id")
+            username = self.get_current_user_attr("edx-platform.username")
+
         self.scorm_data["cmi.core.student_id"] = user_id
         self.scorm_data["cmi.learner_id"] = user_id
         self.scorm_data["cmi.learner_name"] = username
@@ -248,6 +273,8 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
                 "block_height": self.height or 450,
                 "lesson_status": self.lesson_status,
                 "success_status": self.success_status,
+                "lesson_score": self.lesson_score,
+                "is_anonymous": self.is_anonymous_user,
             },
         )
         return frag
@@ -796,9 +823,9 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
         if name == "cmi.score.scaled":
             return {"value": self.lesson_score}
         if name in ["cmi.core.student_id", "cmi.learner_id"]:
-            return {"value": self.get_current_user_attr("edx-platform.user_id")}
+            return {"value": self.get_current_user_attr("edx-platform.user_id") or ""}
         if name in ["cmi.core.student_name", "cmi.learner_name"]:
-            return {"value": self.get_current_user_attr("edx-platform.username")}
+            return {"value": self.get_current_user_attr("edx-platform.username") or ""}
         return {"value": self.scorm_data.get(name, "")}
 
     @XBlock.json_handler
@@ -813,6 +840,10 @@ class ScormXBlock(XBlock, CompletableXBlockMixin):
             return JsonHandlerError(400, e.args[0]).get_response()
 
     def set_value(self, data):
+        if self.is_anonymous_user:
+            # anonymous: acknowledge, but no state, grade or completion
+            return {"result": "success"}
+
         name = data.get("name")
         value = data.get("value")
         completion_percent = None

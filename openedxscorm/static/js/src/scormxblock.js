@@ -221,6 +221,29 @@ function ScormXBlock(runtime, element, settings) {
         "cmi.score.scaled",
         "cmi.mode"
     ];
+    // anonymous (pre-login VLE): LMS 403s their POSTs, so keep all cmi data client-side
+    var isAnonymous = Boolean(settings.is_anonymous);
+    function isUncached(cmi_element) {
+        return uncachedValues.includes(cmi_element) && !isAnonymous;
+    }
+    if (isAnonymous) {
+        // seed the values the get_value handler would have returned
+        var anonymousDefaults = {
+            "cmi.core.lesson_status": settings.lesson_status,
+            "cmi.completion_status": settings.lesson_status,
+            "cmi.success_status": settings.success_status,
+            "cmi.core.score.raw": settings.lesson_score * 100,
+            "cmi.score.raw": settings.lesson_score * 100,
+            "cmi.score.scaled": settings.lesson_score,
+            "cmi.mode": window.location.href.indexOf("preview") === -1 ? "normal" : "review"
+        };
+        Object.keys(anonymousDefaults).forEach(function (cmi_element) {
+            if (!(cmi_element in settings.scorm_data)) {
+                settings.scorm_data[cmi_element] = anonymousDefaults[cmi_element];
+            }
+        });
+    }
+
     var getValueUrl = runtime.handlerUrl(element, 'scorm_get_value');
     var completionCheckTriggered = false;
     var GetValue = function (cmi_element) {
@@ -239,7 +262,7 @@ function ScormXBlock(runtime, element, settings) {
 
         // Only make a call if navigation menu was not used
         // Otherwise the synchronous calls are blocked by chromium on page unload
-        if (uncachedValues.includes(cmi_element) && !navigationClick){
+        if (isUncached(cmi_element) && !navigationClick){
             var response = $.ajax({
                 type: "POST",
                 url: getValueUrl,
@@ -285,7 +308,7 @@ function ScormXBlock(runtime, element, settings) {
             params = setValueEvents.shift();
             cmi_element = params[0];
             value = params[1];
-            if (!uncachedValues.includes(cmi_element)) {
+            if (!isUncached(cmi_element)) {
                 // Update the local scorm data copy to fetch results faster with get_value
                 settings.scorm_data[cmi_element] = value;
             }
@@ -293,6 +316,11 @@ function ScormXBlock(runtime, element, settings) {
                 'name': cmi_element,
                 'value': value
             })
+        }
+        if (isAnonymous) {
+            // anonymous: nothing to persist
+            processSetValueQueueItems();
+            return;
         }
         $.ajax({
             type: "POST",
