@@ -266,6 +266,7 @@ function ScormXBlock(runtime, element, settings) {
             var response = $.ajax({
                 type: "POST",
                 url: getValueUrl,
+                contentType: "application/json",
                 data: JSON.stringify({
                     'name': cmi_element,
                     'url': window.location.href
@@ -325,6 +326,7 @@ function ScormXBlock(runtime, element, settings) {
         $.ajax({
             type: "POST",
             url: setValuesUrl,
+            contentType: "application/json",
             data: JSON.stringify(data),
             success: function (results) {
                 for (var i = 0; i < results.length; i += 1) {
